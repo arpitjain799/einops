@@ -21,8 +21,9 @@ def run(cmd, **env):
     return p.returncode
 
 
-# check we have nvidia-smi
+# check we have nvidia-smi and it can connect
 import shutil
+
 have_cuda = False
 if shutil.which('nvidia-smi') is not None:
     output, _ = Popen('nvidia-smi'.split(' '), stdout=PIPE).communicate()
@@ -61,20 +62,22 @@ if not skip_oneflow:
     assert 0 == run('pip install -f https://release.oneflow.info oneflow==0.7.0+cpu --user')
 
 # mindspore only support einsum on GPU for linux
-skip_mindspore =  'linux' not in sys.platform or not have_cuda
+# skip_mindspore = 'linux' not in sys.platform or not have_cuda
+skip_mindspore = 'linux' not in sys.platform
+assert not skip_mindspore
 if not skip_mindspore:
     # mindspore installation: https://www.mindspore.cn/install
-    assert 0 == run('pip install mindspore-gpu --user')
+    assert 0 == run('pip install mindspore --user')
 
 
-# install einops
-assert 0 == run('pip install -e .')
+if __name__ == '__main__':
+    # install einops
+    assert 0 == run('pip install -e .')
 
-
-return_code = run(
-    'python -m nose tests -vds',
-    EINOPS_SKIP_CUPY='1' if skip_cupy else '0',
-    EINOPS_SKIP_ONEFLOW='1' if skip_oneflow else '0',
-    EINOPS_SKIP_MINDSPORE='1' if skip_mindspore else '0'
-)
-assert return_code == 0
+    return_code = run(
+        'python -m nose tests -vds',
+        EINOPS_SKIP_CUPY='1' if skip_cupy else '0',
+        EINOPS_SKIP_ONEFLOW='1' if skip_oneflow else '0',
+        EINOPS_SKIP_MINDSPORE='1' if skip_mindspore else '0'
+    )
+    assert return_code == 0
